@@ -1,62 +1,48 @@
-use lofty::{Accessor, Probe, Tag, TagExt, TaggedFileExt};
+use lofty::{Probe, Tag, TagExt, TaggedFileExt, mp4::{AtomIdent, AtomData, Atom, Ilst}, TagType, ItemKey};
 
-use structopt::StructOpt;
-use std::path::PathBuf;
+use std::{path::PathBuf, borrow::Cow};
 
-//use wasm_bindgen::prelude::*
+fn main() {
+    let path = PathBuf::from("samples/service-login.mp3");
 
-
-#[derive(Debug, StructOpt)]
-#[structopt(name = "tag_writer", about = "A simple tag writer example")]
-struct Opt {
-	#[structopt(short, long)]
-	title: Option<String>,
-
-	#[structopt(short, long)]
-	artist: Option<String>,
-
-	#[structopt(short = "A", long)]
-	album: Option<String>,
-
-	#[structopt(short, long)]
-	genre: Option<String>,
-
-	#[structopt(parse(from_os_str))]
-	path: PathBuf,
-}
-
-pub fn write_metadata(title: String, artist: String, album: String, genre: String, path: PathBuf) {
-    let mut tagged_file = Probe::open(&path)
+	let mut tagged_file = Probe::open(&path)
         .expect("ERROR: Bad path provided!")
         .read()
         .expect("ERROR: Failed to read file!");
-    
-    let tag = match tagged_file.primary_tag_mut() {
-        Some(primary_tag) => primary_tag,
+
+    let mut tag = match tagged_file.primary_tag_mut() {
+        Some(primary_tag) => primary_tag.to_owned(),
         None => {
             if let Some(first_tag) = tagged_file.first_tag_mut() {
-                first_tag
+                first_tag.to_owned()
             } else {
                 let tag_type = tagged_file.primary_tag_type();
                 eprintln!("WARN: No tags found, creating a new tag of type `{tag_type:?}`");
 
                 tagged_file.insert_tag(Tag::new(tag_type));
-                tagged_file.primary_tag_mut().unwrap()
+                tagged_file.primary_tag_mut().unwrap().to_owned()
             }
         },
     };
 
-    tag.set_title(title);
-    tag.set_artist(artist);
-    tag.set_album(album);
-    tag.set_genre(genre);
+    let atom = Atom::new(
+        AtomIdent::Freeform { mean: (Cow::Borrowed("com.apple.iTunes")), name: (Cow::Borrowed("MEDIA")) },
+        AtomData::UTF8(String::from("Digital Media1"))
+    );
+
+    tag.insert_text(ItemKey::TrackTitle, String::from("Title3"));
+    tag.insert_text(ItemKey::TrackArtist, String::from("Artist1"));
+    tag.insert_text(ItemKey::AlbumTitle, String::from("Album1"));
+    tag.insert_text(ItemKey::Genre, String::from("Genre1"));
     
+    if tag.tag_type() == TagType::Mp4Ilst {
+        let mut ilst = Ilst::from(tag.to_owned());
+
+        ilst.replace_atom(atom);
+
+        tag = Tag::from(ilst);
+    }
+
     tag.save_to_path(&path)
-    .expect("ERROR: Failed to write the tag!");
-}
-
-fn main() {
-	let opt = Opt::from_args();
-
-	write_metadata(opt.title.unwrap(), opt.artist.unwrap(), opt.album.unwrap(), opt.genre.unwrap(), opt.path)
+        .expect("ERROR: Failed to write the tag!");
 }
