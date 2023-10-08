@@ -166,40 +166,40 @@ fn main() {
     }
 
     // If the file accepts ilst metadata, loop through those we set asides
-    if tag.tag_type() == TagType::Mp4Ilst {
-        // We convert the Tag to Ilst, and then we switch it back.
-        let mut ilst = Ilst::from(tag.to_owned());
+    if tag.tag_type() != TagType::Mp4Ilst {
+        tag.save_to_path(&args[2])
+            .expect("ERROR: Failed to write the tag!");
 
-        let mut atom: Atom<'_>;
-        let default: [u8; 4] = [b'-'; 4];
-
-        if ilst_style.contains(&"rDNS") {
-            for obj in metadata["rDNS"].members() {
-                atom = Atom::new(
-                    AtomIdent::Freeform {
-                        mean: Cow::Owned(obj["mean"].to_string()),
-                        name: Cow::Owned(obj["name"].to_string()),
-                    },
-                    AtomData::UTF8(obj["data"].to_string()),
-                );
-
-                ilst.replace_atom(atom);
-            }
-
-            ilst_style.retain(|&x| x != "rDNS");
-        }
-
-        for key in ilst_style {
-            atom = Atom::new(
-                AtomIdent::Fourcc(key.as_bytes()[0..4].try_into().unwrap_or(default)),
-                AtomData::UTF8(metadata[key].to_string()),
-            );
-            ilst.replace_atom(atom);
-        }
-
-        tag = Tag::from(ilst);
+        return;
     }
 
-    tag.save_to_path(&args[2])
+    // "When converting from Tag, only items with a value of ItemValue::Text, as well as pictures, will be preserved.
+    // An attempt will be made to create the TrackNumber/TrackTotal (trkn) and DiscNumber/DiscTotal (disk) pairs."
+    // From https://docs.rs/lofty/latest/lofty/mp4/struct.Ilst.html#conversions
+    let mut ilst = Ilst::from(tag.to_owned());
+    let default: [u8; 4] = [b'-'; 4];
+
+    if ilst_style.contains(&"rDNS") {
+        for obj in metadata["rDNS"].members() {
+            ilst.replace_atom(Atom::new(
+                AtomIdent::Freeform {
+                    mean: Cow::Owned(obj["mean"].to_string()),
+                    name: Cow::Owned(obj["name"].to_string()),
+                },
+                AtomData::UTF8(obj["data"].to_string()),
+            ));
+        }
+
+        ilst_style.retain(|&x| x != "rDNS");
+    }
+
+    for key in ilst_style {
+        ilst.replace_atom(Atom::new(
+            AtomIdent::Fourcc(key.as_bytes()[0..4].try_into().unwrap_or(default)),
+            AtomData::UTF8(metadata[key].to_string()),
+        ));
+    }
+
+    ilst.save_to_path(&args[2])
         .expect("ERROR: Failed to write the tag!");
 }
