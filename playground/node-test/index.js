@@ -11,19 +11,23 @@ var file_rp = realpathSync(argv.at(-1));
 var directory = dirname(file_rp);
 var filename = basename(file_rp);
 
+var datetime = new Date();
+
 const wasi = new WASI({
   version: 'preview1',
   args: [
     argv[0],
     JSON.stringify({
-      'TrackTitle': 'title2',
-      'TrackArtist': 'artist2',
-      'AlbumTitle': 'album2',
-      'Genre': 'genre2',
+      'TrackTitle': datetime.toString(),
+      'TrackArtist': datetime.toString(),
+      'AlbumTitle': datetime.toString(),
+      'Genre': datetime.toString(),
       'rDNS': [
-        {'mean': 'com.apple.iTunes', 'name': 'MEDIA', 'data': "rDNS"}
+        {'mean': 'com.apple.iTunes', 'name': 'MEDIA', 'data': datetime.toString() }
       ],
-      'apID': 'orsetto'
+      'apID': datetime.toString(),
+      'TrackNumber': datetime.getHours(),
+      'TrackTotal': datetime.getMinutes(),
     }),
     join('/sandbox', filename)
   ],
