@@ -16,12 +16,12 @@ const wasi = new WASI({
   args: [
     argv[0],
     JSON.stringify({
-      'TrackTitle': '1Track1Title',
-      'TrackArtist': '1Track1Artist',
-      'AlbumTitle': '1Album1Title',
-      'Genre': '0',
+      'TrackTitle': 'title2',
+      'TrackArtist': 'artist2',
+      'AlbumTitle': 'album2',
+      'Genre': 'genre2',
       'rDNS': [
-        {'mean': 'com.apple.iTunes', 'name': 'MEDIA', 'data': "prova"}
+        {'mean': 'com.apple.iTunes', 'name': 'MEDIA', 'data': "rDNS"}
       ],
       'apID': 'orsetto'
     }),

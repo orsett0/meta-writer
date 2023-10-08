@@ -1,6 +1,6 @@
 use lofty::{
     mp4::{Atom, AtomData, AtomIdent, Ilst},
-    read_from_path, ItemKey, Tag, TagExt, TagType, TaggedFileExt,
+    read_from_path, ItemKey, ItemValue, Tag, TagExt, TagItem, TagType, TaggedFileExt,
 };
 
 use phf::phf_map;
@@ -113,8 +113,10 @@ const TAGS_KEY: phf::Map<&'static str, ItemKey> = phf_map![
 
 fn main() {
     let args: Vec<String> = env::args().collect();
+    let mut ilst_style: Vec<&str> = Vec::new();
 
     if args.len() != 3 {
+        // We need prog_name, json_encoded_metadata, sandboxed_file_path
         eprintln!("Invalid parameters number!");
         exit(1);
     }
@@ -138,25 +140,38 @@ fn main() {
         }
     };
 
-    let mut ilst_style: Vec<&str> = Vec::new();
-
+    // Loop through the given metadata, set aside possible ilst and ignore unknown ones
     for (key, val) in metadata.entries() {
-        if (key == "rDNS" || key.chars().count() == 4) && !TAGS_KEY.contains_key(key) {
-            ilst_style.push(key);
+        let item_key = TAGS_KEY.get(key);
+
+        if item_key.is_none() {
+            if key == "rDNS" || key.chars().count() == 4 {
+                ilst_style.push(key);
+            }
+
+            continue;
         }
 
-        tag.insert_text(
-            TAGS_KEY
-                .get(key)
+        // Assuming ItemValue::Text is a bug.
+        // Unfortunately, there's no easy way of deciding what ItemValue variant a given ItemKey expects,
+        // So for now i'll keep it this way and I'll add a check for the artwork
+        let item = TagItem::new(
+            item_key
                 .unwrap_or(&ItemKey::Unknown(String::from(key)))
                 .to_owned(),
-            val.to_string(),
+            ItemValue::Text(val.to_string()),
         );
+
+        tag.insert(item);
     }
 
+    // If the file accepts ilst metadata, loop through those we set asides
     if tag.tag_type() == TagType::Mp4Ilst {
+        // We convert the Tag to Ilst, and then we switch it back.
         let mut ilst = Ilst::from(tag.to_owned());
+
         let mut atom: Atom<'_>;
+        let default: [u8; 4] = [b'-'; 4];
 
         if ilst_style.contains(&"rDNS") {
             for obj in metadata["rDNS"].members() {
@@ -174,7 +189,6 @@ fn main() {
             ilst_style.retain(|&x| x != "rDNS");
         }
 
-        let default: [u8; 4] = [b'-'; 4];
         for key in ilst_style {
             atom = Atom::new(
                 AtomIdent::Fourcc(key.as_bytes()[0..4].try_into().unwrap_or(default)),
