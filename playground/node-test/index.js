@@ -13,7 +13,20 @@ var filename = basename(file_rp);
 
 const wasi = new WASI({
   version: 'preview1',
-  args: argv.slice(1, argv.length - 1).concat([join('/sandbox', filename)]),
+  args: [
+    argv[0],
+    JSON.stringify({
+      'TrackTitle': '1Track1Title',
+      'TrackArtist': '1Track1Artist',
+      'AlbumTitle': '1Album1Title',
+      'Genre': '0',
+      'rDNS': [
+        {'mean': 'com.apple.iTunes', 'name': 'MEDIA', 'data': "prova"}
+      ],
+      'apID': 'orsetto'
+    }),
+    join('/sandbox', filename)
+  ],
   env,
   preopens: {
     '/sandbox': directory,

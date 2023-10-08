@@ -1,62 +1,191 @@
-use lofty::{Accessor, Probe, Tag, TagExt, TaggedFileExt};
+use lofty::{
+    mp4::{Atom, AtomData, AtomIdent, Ilst},
+    read_from_path, ItemKey, Tag, TagExt, TagType, TaggedFileExt,
+};
 
-use structopt::StructOpt;
-use std::path::PathBuf;
+use phf::phf_map;
+use std::{borrow::Cow, convert::TryInto, env, process::exit};
 
-//use wasm_bindgen::prelude::*
+const TAGS_KEY: phf::Map<&'static str, ItemKey> = phf_map![
+    "AlbumArtist" => ItemKey::AlbumArtist,
+    "AlbumArtistSortOrder" => ItemKey::AlbumArtistSortOrder,
+    "AlbumTitle" => ItemKey::AlbumTitle,
+    "AlbumTitleSortOrder" => ItemKey::AlbumTitleSortOrder,
+    "AppleId3v2ContentGroup" => ItemKey::AppleId3v2ContentGroup,
+    "AppleXid" => ItemKey::AppleXid,
+    "Arranger" => ItemKey::Arranger,
+    "AudioFileUrl" => ItemKey::AudioFileUrl,
+    "AudioSourceUrl" => ItemKey::AudioSourceUrl,
+    "Barcode" => ItemKey::Barcode,
+    "Bpm" => ItemKey::Bpm,
+    "CatalogNumber" => ItemKey::CatalogNumber,
+    "Color" => ItemKey::Color,
+    "Comment" => ItemKey::Comment,
+    "CommercialInformationUrl" => ItemKey::CommercialInformationUrl,
+    "Composer" => ItemKey::Composer,
+    "ComposerSortOrder" => ItemKey::ComposerSortOrder,
+    "Conductor" => ItemKey::Conductor,
+    "ContentGroup" => ItemKey::ContentGroup,
+    "CopyrightMessage" => ItemKey::CopyrightMessage,
+    "CopyrightUrl" => ItemKey::CopyrightUrl,
+    "Description" => ItemKey::Description,
+    "Director" => ItemKey::Director,
+    "DiscNumber" => ItemKey::DiscNumber,
+    "DiscTotal" => ItemKey::DiscTotal,
+    "EncodedBy" => ItemKey::EncodedBy,
+    "EncoderSettings" => ItemKey::EncoderSettings,
+    "EncoderSoftware" => ItemKey::EncoderSoftware,
+    "EncodingTime" => ItemKey::EncodingTime,
+    "Engineer" => ItemKey::Engineer,
+    "FileOwner" => ItemKey::FileOwner,
+    "FileType" => ItemKey::FileType,
+    "FlagCompilation" => ItemKey::FlagCompilation,
+    "FlagPodcast" => ItemKey::FlagPodcast,
+    "Genre" => ItemKey::Genre,
+    "InitialKey" => ItemKey::InitialKey,
+    "InternetRadioStationName" => ItemKey::InternetRadioStationName,
+    "InternetRadioStationOwner" => ItemKey::InternetRadioStationOwner,
+    "InvolvedPeople" => ItemKey::InvolvedPeople,
+    "Isrc" => ItemKey::Isrc,
+    "Label" => ItemKey::Label,
+    "Language" => ItemKey::Language,
+    "Length" => ItemKey::Length,
+    "License" => ItemKey::License,
+    "Lyricist" => ItemKey::Lyricist,
+    "Lyrics" => ItemKey::Lyrics,
+    "MixDj" => ItemKey::MixDj,
+    "MixEngineer" => ItemKey::MixEngineer,
+    "Mood" => ItemKey::Mood,
+    "Movement" => ItemKey::Movement,
+    "MovementNumber" => ItemKey::MovementNumber,
+    "MovementTotal" => ItemKey::MovementTotal,
+    "MusicBrainzArtistId" => ItemKey::MusicBrainzArtistId,
+    "MusicBrainzRecordingId" => ItemKey::MusicBrainzRecordingId,
+    "MusicBrainzReleaseArtistId" => ItemKey::MusicBrainzReleaseArtistId,
+    "MusicBrainzReleaseGroupId" => ItemKey::MusicBrainzReleaseGroupId,
+    "MusicBrainzReleaseId" => ItemKey::MusicBrainzReleaseId,
+    "MusicBrainzTrackId" => ItemKey::MusicBrainzTrackId,
+    "MusicBrainzWorkId" => ItemKey::MusicBrainzWorkId,
+    "MusicianCredits" => ItemKey::MusicianCredits,
+    "OriginalAlbumTitle" => ItemKey::OriginalAlbumTitle,
+    "OriginalArtist" => ItemKey::OriginalArtist,
+    "OriginalFileName" => ItemKey::OriginalFileName,
+    "OriginalLyricist" => ItemKey::OriginalLyricist,
+    "OriginalMediaType" => ItemKey::OriginalMediaType,
+    "OriginalReleaseDate" => ItemKey::OriginalReleaseDate,
+    "ParentalAdvisory" => ItemKey::ParentalAdvisory,
+    "PaymentUrl" => ItemKey::PaymentUrl,
+    "Performer" => ItemKey::Performer,
+    "PodcastDescription" => ItemKey::PodcastDescription,
+    "PodcastGlobalUniqueID" => ItemKey::PodcastGlobalUniqueID,
+    "PodcastKeywords" => ItemKey::PodcastKeywords,
+    "PodcastReleaseDate" => ItemKey::PodcastReleaseDate,
+    "PodcastSeriesCategory" => ItemKey::PodcastSeriesCategory,
+    "PodcastURL" => ItemKey::PodcastURL,
+    "Popularimeter" => ItemKey::Popularimeter,
+    "Producer" => ItemKey::Producer,
+    "Publisher" => ItemKey::Publisher,
+    "PublisherUrl" => ItemKey::PublisherUrl,
+    "RadioStationUrl" => ItemKey::RadioStationUrl,
+    "RecordingDate" => ItemKey::RecordingDate,
+    "Remixer" => ItemKey::Remixer,
+    "ReplayGainAlbumGain" => ItemKey::ReplayGainAlbumGain,
+    "ReplayGainAlbumPeak" => ItemKey::ReplayGainAlbumPeak,
+    "ReplayGainTrackGain" => ItemKey::ReplayGainTrackGain,
+    "ReplayGainTrackPeak" => ItemKey::ReplayGainTrackPeak,
+    "Script" => ItemKey::Script,
+    "SetSubtitle" => ItemKey::SetSubtitle,
+    "ShowName" => ItemKey::ShowName,
+    "ShowNameSortOrder" => ItemKey::ShowNameSortOrder,
+    "TaggingTime" => ItemKey::TaggingTime,
+    "TrackArtist" => ItemKey::TrackArtist,
+    "TrackArtistSortOrder" => ItemKey::TrackArtistSortOrder,
+    "TrackArtistUrl" => ItemKey::TrackArtistUrl,
+    "TrackNumber" => ItemKey::TrackNumber,
+    "TrackSubtitle" => ItemKey::TrackSubtitle,
+    "TrackTitle" => ItemKey::TrackTitle,
+    "TrackTitleSortOrder" => ItemKey::TrackTitleSortOrder,
+    "TrackTotal" => ItemKey::TrackTotal,
+    "Work" => ItemKey::Work,
+    "Writer" => ItemKey::Writer,
+    "Year" => ItemKey::Year,
+];
 
+fn main() {
+    let args: Vec<String> = env::args().collect();
 
-#[derive(Debug, StructOpt)]
-#[structopt(name = "tag_writer", about = "A simple tag writer example")]
-struct Opt {
-	#[structopt(short, long)]
-	title: Option<String>,
+    if args.len() != 3 {
+        eprintln!("Invalid parameters number!");
+        exit(1);
+    }
 
-	#[structopt(short, long)]
-	artist: Option<String>,
+    let metadata = json::parse(&args[1]).expect("ERROR: Metadata string is not valid JSON!");
 
-	#[structopt(short = "A", long)]
-	album: Option<String>,
+    let mut tagged_file = read_from_path(&args[2]).expect("ERROR: Can't read file!");
 
-	#[structopt(short, long)]
-	genre: Option<String>,
-
-	#[structopt(parse(from_os_str))]
-	path: PathBuf,
-}
-
-pub fn write_metadata(title: String, artist: String, album: String, genre: String, path: PathBuf) {
-    let mut tagged_file = Probe::open(&path)
-        .expect("ERROR: Bad path provided!")
-        .read()
-        .expect("ERROR: Failed to read file!");
-    
-    let tag = match tagged_file.primary_tag_mut() {
-        Some(primary_tag) => primary_tag,
+    let mut tag = match tagged_file.primary_tag_mut() {
+        Some(primary_tag) => primary_tag.to_owned(),
         None => {
             if let Some(first_tag) = tagged_file.first_tag_mut() {
-                first_tag
+                first_tag.to_owned()
             } else {
                 let tag_type = tagged_file.primary_tag_type();
                 eprintln!("WARN: No tags found, creating a new tag of type `{tag_type:?}`");
 
                 tagged_file.insert_tag(Tag::new(tag_type));
-                tagged_file.primary_tag_mut().unwrap()
+                tagged_file.primary_tag_mut().unwrap().to_owned()
             }
-        },
+        }
     };
 
-    tag.set_title(title);
-    tag.set_artist(artist);
-    tag.set_album(album);
-    tag.set_genre(genre);
-    
-    tag.save_to_path(&path)
-    .expect("ERROR: Failed to write the tag!");
-}
+    let mut ilst_style: Vec<&str> = Vec::new();
 
-fn main() {
-	let opt = Opt::from_args();
+    for (key, val) in metadata.entries() {
+        if (key == "rDNS" || key.chars().count() == 4) && !TAGS_KEY.contains_key(key) {
+            ilst_style.push(key);
+        }
 
-	write_metadata(opt.title.unwrap(), opt.artist.unwrap(), opt.album.unwrap(), opt.genre.unwrap(), opt.path)
+        tag.insert_text(
+            TAGS_KEY
+                .get(key)
+                .unwrap_or(&ItemKey::Unknown(String::from(key)))
+                .to_owned(),
+            val.to_string(),
+        );
+    }
+
+    if tag.tag_type() == TagType::Mp4Ilst {
+        let mut ilst = Ilst::from(tag.to_owned());
+        let mut atom: Atom<'_>;
+
+        if ilst_style.contains(&"rDNS") {
+            for obj in metadata["rDNS"].members() {
+                atom = Atom::new(
+                    AtomIdent::Freeform {
+                        mean: Cow::Owned(obj["mean"].to_string()),
+                        name: Cow::Owned(obj["name"].to_string()),
+                    },
+                    AtomData::UTF8(obj["data"].to_string()),
+                );
+
+                ilst.replace_atom(atom);
+            }
+
+            ilst_style.retain(|&x| x != "rDNS");
+        }
+
+        let default: [u8; 4] = [b'-'; 4];
+        for key in ilst_style {
+            atom = Atom::new(
+                AtomIdent::Fourcc(key.as_bytes()[0..4].try_into().unwrap_or(default)),
+                AtomData::UTF8(metadata[key].to_string()),
+            );
+            ilst.replace_atom(atom);
+        }
+
+        tag = Tag::from(ilst);
+    }
+
+    tag.save_to_path(&args[2])
+        .expect("ERROR: Failed to write the tag!");
 }

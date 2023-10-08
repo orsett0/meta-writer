@@ -1,5 +1,6 @@
 {
     "rust-analyzer.linkedProjects": [
-        "./playground/lofty-test/Cargo.toml"
+        "./playground/lofty-test/Cargo.toml",
+        "./Cargo.toml"
     ]
 }
