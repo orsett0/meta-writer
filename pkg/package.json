@@ -6,7 +6,6 @@
   "description": "Tool to add metadata to media files using lofty-rs, compiled to WASM",
   "license": "",
   "private": true,
-
   "type": "module",
   "main": "index.js"
 }
