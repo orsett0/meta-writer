@@ -8,3 +8,6 @@ $(OUT): src/main.rs
 
 pkg/package.json: packager.sh Cargo.toml
 	./packager.sh
+
+clean:
+	rm -rf target/ pkg/lofty-wasm.wasm
