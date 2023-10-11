@@ -4,7 +4,7 @@ const { argv } = require('node:process');
 var datetime = new Date();
 
 (async () => {
-  const lofty = await import('lofty-wasm');
+  const lofty = await import('meta-writer');
 
   await lofty.lofty(
     {

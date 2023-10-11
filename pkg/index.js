@@ -23,7 +23,7 @@ import { join, dirname, basename } from 'node:path';
 import { realpathSync } from 'node:fs';
 
 // There's probably a better way to reference a file in the module directory
-const WASMpath = 'node_modules/lofty-wasm/lofty-wasm.wasm';
+const WASMpath = 'node_modules/meta-writer/meta-writer.wasm';
 
 export async function lofty(metadata, file) {
   var directory = realpathSync(dirname(file));
