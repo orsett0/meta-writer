@@ -21,7 +21,6 @@ make
 
 ## License
 
-This software is licensed under the Apache 2.0 license - meta-writerCopyright 2023 Alessio Orsini <alessiorsini.ao@proton.me>
-SPDX-License-Identifier: Apache-2.0. The full text of the license is located in the file [LICENSE](./LICENSE)
+This software is licensed under the Apache 2.0 license - Copyright 2023 Alessio Orsini <alessiorsini.ao@proton.me>. The full text of the license is located in the file [LICENSE](./LICENSE)
 
-The file `samples/service-login.oga` and its different encodings are licensed under the GPLv2, by The Pidgin developers. `service-login.oga` is part of the package [https://cgit.freedesktop.org/sound-theme-freedesktop/](sound-theme-freedesktop). The full text of the license is located in the file [LICENSE.gpl-v2](./LICENSE.gpl-v2)
+The file `samples/service-login.oga` and its different encodings are licensed under the GPLv2, by The Pidgin developers. The file `service-login.oga` is part of the package [https://cgit.freedesktop.org/sound-theme-freedesktop/](sound-theme-freedesktop). The full text of the license is located in the file [LICENSE.gpl-v2](./LICENSE.gpl-v2)
