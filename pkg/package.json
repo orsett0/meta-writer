@@ -4,8 +4,7 @@
   "author": "Alessio Orsini <35498861+orsett0@users.noreply.github.com>",
   "edition": "2018",
   "description": "Tool to add metadata to media files using lofty-rs, compiled to WASM",
-  "license": "",
-  "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "main": "index.js"
 }

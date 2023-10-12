@@ -1,4 +1,5 @@
-# Copyright 2023 Alessio Orsini <alessiorsini.ao@proton.me>
+# meta-writerCopyright 2023 Alessio Orsini <alessiorsini.ao@proton.me>
+# SPDX-License-Identifier: Apache-2.0
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,8 +19,7 @@ version = "0.1.0"
 authors = ["Alessio Orsini <35498861+orsett0@users.noreply.github.com>"]
 edition = "2018"
 description = "Tool to add metadata to media files using lofty-rs, compiled to WASM"
-license = ""
-publish = false
+license = "Apache-2.0"
 
 [dependencies]
 wasm-bindgen = "0.2.84"
