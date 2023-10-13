@@ -177,7 +177,6 @@ fn main() {
                 ilst_style.push(key);
             }
 
-
             continue;
         }
 

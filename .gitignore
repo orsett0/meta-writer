@@ -1,3 +1,6 @@
 Cargo.lock
-target/*
-samples/*
+target/
+samples/
+
+pkg/meta-writer.wasm
+pkg/package.json
