@@ -17,11 +17,11 @@ limitations under the License.
 
 use lofty::{
     mp4::{Atom, AtomData, AtomIdent, Ilst},
-    read_from_path, ItemKey, ItemValue, Tag, TagExt, TagItem, TagType, TaggedFileExt,
+    read_from_path, ItemKey, ItemValue, Tag, TagExt, TagItem, TagType, TaggedFileExt, Picture,
 };
 
 use phf::phf_map;
-use std::{borrow::Cow, convert::TryInto, env, process::exit};
+use std::{borrow::Cow, convert::TryInto, env, process::exit, fs::File};
 
 const TAGS_KEY: phf::Map<&'static str, ItemKey> = phf_map![
     "AlbumArtist" => ItemKey::AlbumArtist,
@@ -138,10 +138,10 @@ fn main() {
         exit(1);
     }
 
-    let metadata = json::parse(&args[1]).expect("ERROR: Metadata string is not valid JSON!");
+    let json_encoded_metadata = &args[1];
+    let sandboxed_file_path = &args[2];
 
-    let mut tagged_file = read_from_path(&args[2]).expect("ERROR: Can't read file!");
-
+    let mut tagged_file = read_from_path(sandboxed_file_path).expect("ERROR: Can't read file!");
     let mut tag = match tagged_file.primary_tag_mut() {
         Some(primary_tag) => primary_tag.to_owned(),
         None => {
@@ -157,6 +157,17 @@ fn main() {
         }
     };
 
+    let mut metadata = json::parse(json_encoded_metadata)
+        .expect("ERROR: Metadata string is not valid JSON!");
+
+    let front_cover_path = metadata.remove("FrontCover");
+    if front_cover_path.is_string() {
+        let front_cover = &mut File::open(front_cover_path.as_str().unwrap_or_default())
+            .expect("Error opening the front cover image.");
+
+        tag.set_picture(0, Picture::from_reader(front_cover).expect("Error reading front cover image."));
+    }
+
     // Loop through the given metadata, set aside possible ilst and ignore unknown ones
     for (key, val) in metadata.entries() {
         let item_key = TAGS_KEY.get(key);
@@ -166,12 +177,13 @@ fn main() {
                 ilst_style.push(key);
             }
 
+
             continue;
         }
 
         // Assuming ItemValue::Text is a bug.
         // Unfortunately, there's no easy way of deciding what ItemValue variant a given ItemKey expects,
-        // So for now i'll keep it this way and I'll add a check for the artwork
+        // So for now i'll keep it this way
         let item = TagItem::new(
             item_key
                 .unwrap_or(&ItemKey::Unknown(String::from(key)))
@@ -184,7 +196,7 @@ fn main() {
 
     // If the file accepts ilst metadata, loop through those we set asides
     if tag.tag_type() != TagType::Mp4Ilst {
-        tag.save_to_path(&args[2])
+        tag.save_to_path(sandboxed_file_path)
             .expect("ERROR: Failed to write the tag!");
 
         return;
@@ -217,6 +229,6 @@ fn main() {
         ));
     }
 
-    ilst.save_to_path(&args[2])
+    ilst.save_to_path(sandboxed_file_path)
         .expect("ERROR: Failed to write the tag!");
 }

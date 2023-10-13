@@ -18,6 +18,7 @@ var datetime = new Date();
       'apID': datetime.toString(),
       'TrackNumber': datetime.getHours(),
       'TrackTotal': datetime.getMinutes(),
+      'FrontCover': 'samples/cover.jpg'
     },
     argv[2]
   );

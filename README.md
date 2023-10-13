@@ -2,7 +2,7 @@
 
 Tool to add metadata to media files using [lofty-rs](https://github.com/Serial-ATA/lofty-rs/), compiled to WASM. It tries to add metadata of the types available in the enum `lofty::ItemKey`, and then tries to add the unmatched values as an [Ilst](https://developer.apple.com/documentation/quicktime-file-format/metadata_item_list_atom) tag, if the file is an `mp4`.
 
-This project should basically be a write-only wrapper for lofty-ls, compiled to WASM.
+This project should basically be a write-only wrapper for lofty-ls, compiled to WASM. It is currently only tested with mp3 and mp4 formats.
 
 I'm using a `Makefile` because I'm too lazy to learn [cargo-make](https://crates.io/crates/cargo-make), and also it seems like it does not support a file as dependency (altough I didn't look much into it).
 
@@ -21,6 +21,6 @@ make
 
 ## License
 
-This software is licensed under the Apache 2.0 license - Copyright 2023 Alessio Orsini <alessiorsini.ao@proton.me>. The full text of the license is located in the file [LICENSE](./LICENSE)
+This software and all the file in this repository, unless otherwise specified, is licensed under the Apache 2.0 license - Copyright 2023 Alessio Orsini <alessiorsini.ao@proton.me>. The full text of the license is located in the file [LICENSE](./LICENSE)
 
 The file `samples/service-login.oga` and its different encodings are licensed under the GPLv2, by The Pidgin developers. The file `service-login.oga` is part of the package [https://cgit.freedesktop.org/sound-theme-freedesktop/](sound-theme-freedesktop). The full text of the license is located in the file [LICENSE.gpl-v2](./LICENSE.gpl-v2)

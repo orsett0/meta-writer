@@ -27,20 +27,22 @@ import { realpathSync } from 'node:fs';
 const WASMpath = 'node_modules/meta-writer/meta-writer.wasm';
 
 export async function lofty(metadata, file) {
-  var directory = realpathSync(dirname(file));
-  var filename = basename(file);
+  var preopens = { '/sandbox': realpathSync(dirname(file)) };
+
+  if (metadata['FrontCover'] !== undefined) {
+    preopens['/sandbox/cover'] = realpathSync(dirname(metadata['FrontCover']));
+    metadata['FrontCover'] = join('/sandbox/cover', basename(metadata['FrontCover']));
+  }
 
   const wasi = new WASI({
     version: 'preview1',
     args: [
       argv[0],
       JSON.stringify(metadata),
-      join('/sandbox', filename)
+      join('/sandbox', basename(file))
     ],
     env,
-    preopens: {
-      '/sandbox': directory,
-    },
+    preopens: preopens,
   });
 
   const wasm = await WebAssembly.compile(

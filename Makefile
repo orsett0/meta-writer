@@ -1,13 +1,17 @@
-OUT := "target/wasm32-wasi/debug/meta-writer.wasm"
+OUT_DBG := "target/wasm32-wasi/debug/meta-writer.wasm"
+OUT_REL := "target/wasm32-wasi/release/meta-writer.wasm"
 
-all: $(OUT) pkg/package.json
+all: $(OUT_REL) pkg/package.json
+build: $(OUT_REL)
+debug: $(OUT_DEV)
 
-$(OUT): src/main.rs
+$(OUT_REL): src/main.rs
 	cargo build --release --target=wasm32-wasi
-	cp $(OUT) pkg/
+	cp "target/wasm32-wasi/release/meta-writer.wasm" pkg/
 
-dev: pkg/package.json src/main.rs clean
+$(OUT_DEV): pkg/package.json src/main.rs clean
 	cargo build --target=wasm32-wasi
+	cp "target/wasm32-wasi/debug/meta-writer.wasm" pkg/
 
 pkg/package.json: packager.sh Cargo.toml
 	./packager.sh
