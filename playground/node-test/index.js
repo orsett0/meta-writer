@@ -6,7 +6,7 @@ var datetime = new Date();
 (async () => {
   const lofty = await import('meta-writer');
 
-  await lofty.lofty(
+  await lofty.meta_writer(
     {
       'TrackTitle': datetime.toString(),
       'TrackArtist': datetime.toString(),

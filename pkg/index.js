@@ -26,7 +26,7 @@ import { realpathSync } from 'node:fs';
 // There's probably a better way to reference a file in the module directory
 const WASMpath = 'node_modules/meta-writer/meta-writer.wasm';
 
-export async function lofty(metadata, file) {
+export async function meta_writer(metadata, file) {
   var preopens = { '/sandbox': realpathSync(dirname(file)) };
 
   if (metadata['FrontCover'] !== undefined) {
