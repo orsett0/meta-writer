@@ -11,7 +11,7 @@ $(OUT_REL): src/main.rs
 
 $(OUT_DEV): pkg/package.json src/main.rs clean
 	cargo build --target=wasm32-wasi
-	cp "target/wasm32-wasi/debug/meta-writer.wasm" pkg/
+	cp -t pkg/ "target/wasm32-wasi/debug/meta-writer.wasm" "LICENSE" "README.md"
 
 pkg/package.json: packager.sh Cargo.toml
 	./packager.sh

@@ -2,5 +2,9 @@ Cargo.lock
 target/
 samples/
 
+# The following files are generated
+# There's no need to commit them ever time
 pkg/meta-writer.wasm
 pkg/package.json
+pkg/README.md
+pkg/LICENSE

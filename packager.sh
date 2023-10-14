@@ -40,6 +40,7 @@ do
 
     line=$(echo $line | sed -E 's/^authors = \[(.*)\]/author = \1/')
     line=$(echo $line | sed -e 's/^publish = false/private = true/')
+    line=$(echo $line | sed -e 's/^name = "meta-writer"$/name = "@orsetto\/meta-writer"/')
 
     val=$(echo $line | sed -E 's/^( )+(.*)( )+$/\2/' | sed -E 's/^(.*) = (.*)$/\"\1\": \2/')
     [ ! -z "$val" ] && values+=("$val")
