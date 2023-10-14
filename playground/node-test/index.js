@@ -1,12 +1,12 @@
 'use strict';
-const { argv } = require('node:process');
+import { argv } from 'node:process';
+import meta_writer from 'meta-writer';
 
 var datetime = new Date();
 
 (async () => {
-  const lofty = await import('meta-writer');
 
-  await lofty.meta_writer(
+  await meta_writer(
     {
       'TrackTitle': datetime.toString(),
       'TrackArtist': datetime.toString(),
