@@ -162,10 +162,13 @@ fn main() {
 
     let front_cover_path = metadata.remove("FrontCover");
     if front_cover_path.is_string() {
-        let front_cover = &mut File::open(front_cover_path.as_str().unwrap_or_default())
-            .expect("Error opening the front cover image.");
+        let mut picture = Picture::from_reader(
+            &mut File::open(front_cover_path.as_str().unwrap_or_default())
+            .expect("Error opening the front cover image."))
+            .expect("Error reading front cover image.");
 
-        tag.set_picture(0, Picture::from_reader(front_cover).expect("Error reading front cover image."));
+        picture.set_pic_type(lofty::PictureType::CoverFront);
+        tag.set_picture(0, picture);
     }
 
     // Loop through the given metadata, set aside possible ilst and ignore unknown ones
