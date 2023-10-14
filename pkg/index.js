@@ -24,7 +24,8 @@ import { join, dirname, basename } from 'node:path';
 import { realpathSync } from 'node:fs';
 
 // There's probably a better way to reference a file in the module directory
-const WASMpath = 'node_modules/meta-writer/meta-writer.wasm';
+// I need a valid alternative to `__dirname`
+const WASMpath = 'node_modules/@orsetto/meta-writer/meta-writer.wasm';
 
 export async function meta_writer(metadata, file) {
   var preopens = { '/sandbox': realpathSync(dirname(file)) };
