@@ -1,6 +1,6 @@
 'use strict';
 import { argv } from 'node:process';
-import meta_writer from 'meta-writer';
+import meta_writer from '@orsetto/meta-writer';
 
 var datetime = new Date();
 

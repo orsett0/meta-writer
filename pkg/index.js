@@ -23,10 +23,6 @@ import { argv, env } from 'node:process';
 import { join, dirname, basename } from 'node:path';
 import { realpathSync } from 'node:fs';
 
-// There's probably a better way to reference a file in the module directory
-// I need a valid alternative to `__dirname`
-const WASMpath = 'node_modules/@orsetto/meta-writer/meta-writer.wasm';
-
 export async function meta_writer(metadata, file) {
   var preopens = { '/sandbox': realpathSync(dirname(file)) };
 
@@ -47,7 +43,7 @@ export async function meta_writer(metadata, file) {
   });
 
   const wasm = await WebAssembly.compile(
-    await readFile(WASMpath),
+    await readFile(join(dirname(import.meta.url.split(':').slice(1).join(':')), 'meta-writer.wasm')),
   );
   const instance = await WebAssembly.instantiate(wasm, wasi.getImportObject());
   wasi.start(instance);
