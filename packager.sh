@@ -49,6 +49,7 @@ done < Cargo.toml
 values+=('"type": "module"')
 values+=('"main": "loader.js"')
 values+=('"dependencies": { "suppress-experimental-warnings": "^1.1.17" }')
+values+=('"engines": { "node": ">=14" }')
 
 printf "{\n  " { > pkg/package.json
 join $',\n  ' "${values[@]}" >> pkg/package.json
