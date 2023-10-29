@@ -50,7 +50,15 @@ values+=('"type": "module"')
 values+=('"main": "loader.js"')
 values+=('"dependencies": { "suppress-experimental-warnings": "^1.1.17" }')
 values+=('"engines": { "node": ">=14" }')
+values+=('"keywords": [ "metadata", "tag", "tags", "mp4", "m4a", "ilst", "music" ]')
+values+=('"repository": { "type": "git", "url": "git@github.com:orsett0/meta-writer.git" }')
+values+=('"bugs":{"url":"https://github.com/orsett0/meta-writer/issues"}')
 
 printf "{\n  " { > pkg/package.json
 join $',\n  ' "${values[@]}" >> pkg/package.json
 printf "\n}\n" >> pkg/package.json
+
+node <<"EOF"
+fs = require('fs')
+fs.writeFileSync("pkg/package.json", JSON.stringify(JSON.parse(fs.readFileSync("pkg/package.json")), null, 2));
+EOF
