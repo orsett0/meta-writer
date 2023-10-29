@@ -15,12 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+use jzon::JsonValue;
 use lofty::{
-    mp4::{Atom, AtomData, AtomIdent, Ilst},
-    read_from_path, ItemKey, ItemValue, Tag, TagExt, TagItem, TagType, TaggedFileExt, Picture,
+    mp4::{Atom, AtomData, AtomIdent, Mp4File},
+    read_from_path, ItemKey, ItemValue, Tag, TagExt, TagItem, TagType, TaggedFileExt, Picture, AudioFile, ParseOptions,
 };
 
-use phf::phf_map;
+use phf::{phf_map, phf_set};
 use std::{borrow::Cow, convert::TryInto, env, process::exit, fs::File};
 
 const TAGS_KEY: phf::Map<&'static str, ItemKey> = phf_map![
@@ -90,7 +91,8 @@ const TAGS_KEY: phf::Map<&'static str, ItemKey> = phf_map![
     "OriginalLyricist" => ItemKey::OriginalLyricist,
     "OriginalMediaType" => ItemKey::OriginalMediaType,
     "OriginalReleaseDate" => ItemKey::OriginalReleaseDate,
-    "ParentalAdvisory" => ItemKey::ParentalAdvisory,
+    // ItemKey::ParentalAdvisory exists, and seems to be only used for rtng, but I can't find a way to use it.
+    //"ParentalAdvisory" => ItemKey::ParentalAdvisory,
     "PaymentUrl" => ItemKey::PaymentUrl,
     "Performer" => ItemKey::Performer,
     "PodcastDescription" => ItemKey::PodcastDescription,
@@ -128,6 +130,117 @@ const TAGS_KEY: phf::Map<&'static str, ItemKey> = phf_map![
     "Year" => ItemKey::Year,
 ];
 
+const ATOM_KEY_STRING: phf::Set<[u8; 4]> = phf_set![
+    *b"----",
+    *b"aART",
+    *b"\xA9alb",
+    *b"apID",
+    *b"\xA9ART",
+    *b"\xA9cmt",
+    *b"cprt",
+    *b"\xA9day",
+    *b"\xA9gen",
+    *b"\xA9grp",
+    *b"\xA9lyr",
+    *b"\xA9mvn",
+    *b"\xA9nam",
+    *b"ownr",
+    *b"purd",
+    *b"soaa",
+    *b"soal",
+    *b"soar",
+    *b"soco",
+    *b"sonm",
+    *b"\xA9too",
+    *b"\xA9wrk",
+    *b"\xA9wrt",
+    *b"xid "
+];
+
+const ATOM_KEY_UINT64: phf::Set<[u8; 4]> = phf_set![
+    *b"plID"
+];
+
+const ATOM_KEY_UINT32: phf::Set<[u8; 4]> = phf_set![
+    *b"atID",
+    *b"cmID",
+    *b"cnID",
+    *b"geID",
+    *b"sfID"
+];
+
+const ATOM_KEY_UINT16: phf::Set<[u8; 4]> = phf_set![
+    *b"\xA9mvc",
+    *b"\xA9mvi",
+    *b"tmpo"
+];
+
+const ATOM_KEY_UINT8: phf::Set<[u8; 4]> = phf_set![
+    *b"cpil",
+    *b"gnre",
+    *b"pgap",
+    *b"rtng",
+    *b"shwm",
+    *b"stik"
+];
+
+const ATOM_KEY_PIC: phf::Set<[u8; 4]> = phf_set![
+    *b"covr"
+];
+
+const ATOM_KEY_INTPAIR: phf::Set<[u8; 4]> = phf_set![
+    *b"trkn",
+    *b"disk"
+];
+
+fn generate_atom_data(key: [u8; 4], value: &JsonValue) -> AtomData {
+    if ATOM_KEY_STRING.contains(&key) {
+        println!("{} is string", String::from_utf8_lossy(&key));
+        return AtomData::UTF8(value.to_string());
+    }
+
+    if ATOM_KEY_PIC.contains(&key) {
+        println!("{} is picture", String::from_utf8_lossy(&key));
+        return AtomData::Picture(Picture::from_reader(
+            &mut File::open(value.to_string())
+            .expect("Error opening the front cover image."))
+            .expect("Error reading front cover image."))
+    }
+
+    if ATOM_KEY_UINT64.contains(&key) {
+        println!("{} is uint64", String::from_utf8_lossy(&key));
+        return AtomData::Unknown { code: 21, data: Vec::from(value.as_i64().unwrap_or_default().to_be_bytes()) };
+    }
+
+    if ATOM_KEY_UINT32.contains(&key) {
+        println!("{} is uint32", String::from_utf8_lossy(&key));
+        return AtomData::Unknown { code: 21, data: Vec::from(value.as_i32().unwrap_or_default().to_be_bytes()) };
+    }
+
+    if ATOM_KEY_UINT16.contains(&key) {
+        println!("{} is uint16", String::from_utf8_lossy(&key));
+        return AtomData::Unknown { code: 21, data: Vec::from(value.as_i16().unwrap_or_default().to_be_bytes()) };
+    }
+
+    if ATOM_KEY_UINT8.contains(&key) {
+        println!("{} is uint8", String::from_utf8_lossy(&key));
+        return AtomData::Unknown { code: 21, data: Vec::from(value.as_i8().unwrap_or_default().to_be_bytes()) };
+    }
+
+    if ATOM_KEY_INTPAIR.contains(&key) {
+        println!("{} is intpair", String::from_utf8_lossy(&key));
+        let mut data: Vec<u8> = vec![0, 0];
+
+        data.extend_from_slice(&value[0].as_i16().unwrap_or(1).to_be_bytes());
+        data.extend_from_slice(&value[1].as_i16().unwrap_or(1).to_be_bytes());
+
+        return AtomData::Unknown { code: 21, data };
+    }
+
+    println!("{} is unknown", String::from_utf8_lossy(&key));
+    return AtomData::Unknown { code: 0, data: Vec::from(value.as_str().unwrap_or_default()) };
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut ilst_style: Vec<&str> = Vec::new();
@@ -157,7 +270,7 @@ fn main() {
         }
     };
 
-    let mut metadata = json::parse(json_encoded_metadata)
+    let mut metadata = jzon::parse(json_encoded_metadata)
         .expect("ERROR: Metadata string is not valid JSON!");
 
     let front_cover_path = metadata.remove("FrontCover");
@@ -196,20 +309,26 @@ fn main() {
         tag.insert(item);
     }
 
-    // If the file accepts ilst metadata, loop through those we set asides
-    if tag.tag_type() != TagType::Mp4Ilst {
-        tag.save_to_path(sandboxed_file_path)
-            .expect("ERROR: Failed to write the tag!");
+    tag.save_to_path(sandboxed_file_path)
+    .expect("ERROR: Failed to write the tag");
 
-        return;
-    }
-
+    // Return if the file is not an MP4, otherwise re-open it as MP4
     // "When converting from Tag, only items with a value of ItemValue::Text, as well as pictures, will be preserved.
     // An attempt will be made to create the TrackNumber/TrackTotal (trkn) and DiscNumber/DiscTotal (disk) pairs."
     // From https://docs.rs/lofty/latest/lofty/mp4/struct.Ilst.html#conversions
-    let mut ilst = Ilst::from(tag.to_owned());
+    if tag.tag_type() != TagType::Mp4Ilst {
+        return;
+    }
+    
+    // For some reason, save_to() fails with MP4, but read_from_path is not available
+    let mut mp4_file = Mp4File::read_from(
+        &mut File::open(sandboxed_file_path)
+        .expect("Unable to open the file."), 
+        ParseOptions::default()).expect("Unable to open the file as an MP4");
+    let mut ilst = mp4_file.ilst_mut().expect("Unable to read any Ilst tag.").to_owned();
     let default: [u8; 4] = [b'-'; 4];
 
+    // Insert rDNS tags.
     if ilst_style.contains(&"rDNS") {
         for obj in metadata["rDNS"].members() {
             ilst.replace_atom(Atom::new(
@@ -224,13 +343,16 @@ fn main() {
         ilst_style.retain(|&x| x != "rDNS");
     }
 
+    // Insert the remaining tags.
     for key in ilst_style {
+        let atom_key = key.as_bytes()[0..4].try_into().unwrap_or(default);
+
         ilst.replace_atom(Atom::new(
-            AtomIdent::Fourcc(key.as_bytes()[0..4].try_into().unwrap_or(default)),
-            AtomData::UTF8(metadata[key].to_string()),
+            AtomIdent::Fourcc(atom_key),
+            generate_atom_data(atom_key, &metadata[key]),
         ));
     }
 
     ilst.save_to_path(sandboxed_file_path)
-        .expect("ERROR: Failed to write the tag!");
+    .expect("ERROR: Failed to write the tag");
 }
