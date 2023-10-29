@@ -17,12 +17,12 @@ limitations under the License.
 
 use jzon::JsonValue;
 use lofty::{
-    mp4::{Atom, AtomData, AtomIdent, Mp4File},
+    mp4::{Atom, AtomData, AtomIdent, Mp4File, Ilst},
     read_from_path, ItemKey, ItemValue, Tag, TagExt, TagItem, TagType, TaggedFileExt, Picture, AudioFile, ParseOptions,
 };
 
 use phf::{phf_map, phf_set};
-use std::{borrow::Cow, convert::TryInto, env, process::exit, fs::File};
+use std::{borrow::Cow, convert::TryInto, env, process::exit, fs::File, collections::HashMap};
 
 const TAGS_KEY: phf::Map<&'static str, ItemKey> = phf_map![
     "AlbumArtist" => ItemKey::AlbumArtist,
@@ -193,14 +193,14 @@ const ATOM_KEY_INTPAIR: phf::Set<[u8; 4]> = phf_set![
     *b"disk"
 ];
 
+const ATOM_DEFAULT: [u8; 4] = [b'-'; 4];
+
 fn generate_atom_data(key: [u8; 4], value: &JsonValue) -> AtomData {
     if ATOM_KEY_STRING.contains(&key) {
-        println!("{} is string", String::from_utf8_lossy(&key));
         return AtomData::UTF8(value.to_string());
     }
 
     if ATOM_KEY_PIC.contains(&key) {
-        println!("{} is picture", String::from_utf8_lossy(&key));
         return AtomData::Picture(Picture::from_reader(
             &mut File::open(value.to_string())
             .expect("Error opening the front cover image."))
@@ -208,27 +208,22 @@ fn generate_atom_data(key: [u8; 4], value: &JsonValue) -> AtomData {
     }
 
     if ATOM_KEY_UINT64.contains(&key) {
-        println!("{} is uint64", String::from_utf8_lossy(&key));
         return AtomData::Unknown { code: 21, data: Vec::from(value.as_i64().unwrap_or_default().to_be_bytes()) };
     }
 
     if ATOM_KEY_UINT32.contains(&key) {
-        println!("{} is uint32", String::from_utf8_lossy(&key));
         return AtomData::Unknown { code: 21, data: Vec::from(value.as_i32().unwrap_or_default().to_be_bytes()) };
     }
 
     if ATOM_KEY_UINT16.contains(&key) {
-        println!("{} is uint16", String::from_utf8_lossy(&key));
         return AtomData::Unknown { code: 21, data: Vec::from(value.as_i16().unwrap_or_default().to_be_bytes()) };
     }
 
     if ATOM_KEY_UINT8.contains(&key) {
-        println!("{} is uint8", String::from_utf8_lossy(&key));
         return AtomData::Unknown { code: 21, data: Vec::from(value.as_i8().unwrap_or_default().to_be_bytes()) };
     }
 
     if ATOM_KEY_INTPAIR.contains(&key) {
-        println!("{} is intpair", String::from_utf8_lossy(&key));
         let mut data: Vec<u8> = vec![0, 0];
 
         data.extend_from_slice(&value[0].as_i16().unwrap_or(1).to_be_bytes());
@@ -240,6 +235,38 @@ fn generate_atom_data(key: [u8; 4], value: &JsonValue) -> AtomData {
     println!("{} is unknown", String::from_utf8_lossy(&key));
     return AtomData::Unknown { code: 0, data: Vec::from(value.as_str().unwrap_or_default()) };
 }
+
+
+fn add_mapped_int_values(
+    ilst: &mut Ilst,
+    tags_list: &mut Vec<&str>,
+    key: &str,
+    value: &JsonValue,
+    values: HashMap<&str, i32>,
+    default: i32,
+) {
+    if !tags_list.contains(&key) {
+        return;
+    }
+
+    let key_b = key.as_bytes()[0..4].try_into().unwrap_or(ATOM_DEFAULT);
+
+    ilst.replace_atom(Atom::new(
+        AtomIdent::Fourcc(key_b),
+        generate_atom_data(
+            key_b,
+            &JsonValue::from(
+                match values.get(value.as_str().unwrap_or_default().to_lowercase().as_str()) {
+                    Some(val) => val.to_owned(),
+                    None => default,
+                },
+            ),
+        ),
+    ));
+
+    tags_list.retain(|&x| x != key);
+}
+
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -326,7 +353,6 @@ fn main() {
         .expect("Unable to open the file."), 
         ParseOptions::default()).expect("Unable to open the file as an MP4");
     let mut ilst = mp4_file.ilst_mut().expect("Unable to read any Ilst tag.").to_owned();
-    let default: [u8; 4] = [b'-'; 4];
 
     // Insert rDNS tags.
     if ilst_style.contains(&"rDNS") {
@@ -343,9 +369,38 @@ fn main() {
         ilst_style.retain(|&x| x != "rDNS");
     }
 
+
+    // For this tags, mimic the behaviour of AtomicParsley
+    add_mapped_int_values(
+        &mut ilst,
+        &mut ilst_style,
+        "rtng",
+        &metadata["rtng"],
+        HashMap::from([("explicit", 1), ("clean", 2)]),
+        0,
+    );
+
+    add_mapped_int_values(
+        &mut ilst,
+        &mut ilst_style,
+        "stik",
+        &metadata["stik"],
+        HashMap::from([
+            ("home video", 0),
+            ("audiobook", 2),
+            ("whacked bookmark", 5),
+            ("music video", 6),
+            ("movie", 9),
+            ("short film", 9),
+            ("tv show", 10),
+            ("booklet", 11),
+        ]),
+        1,
+    );
+
     // Insert the remaining tags.
     for key in ilst_style {
-        let atom_key = key.as_bytes()[0..4].try_into().unwrap_or(default);
+        let atom_key = key.as_bytes()[0..4].try_into().unwrap_or(ATOM_DEFAULT);
 
         ilst.replace_atom(Atom::new(
             AtomIdent::Fourcc(atom_key),
