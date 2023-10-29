@@ -32,7 +32,7 @@ function checkNodeVersion(version) {
   return false;
 }
 
-export async function meta_writer(metadata, file) {
+export async function metaWriter(metadata, file) {
   var preopens = { '/sandbox': realpathSync(dirname(file)) };
 
   if (metadata['FrontCover'] !== undefined) {

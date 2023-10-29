@@ -17,4 +17,4 @@ limitations under the License.
 
 import 'suppress-experimental-warnings';
 
-export default (await import('./index.js')).meta_writer;
+export default (await import('./index.js')).metaWriter;
