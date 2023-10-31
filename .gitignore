@@ -1,6 +1,7 @@
 Cargo.lock
 target/
 samples/
+playground/
 
 # The following files are generated
 # There's no need to commit them ever time

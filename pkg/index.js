@@ -32,7 +32,17 @@ function checkNodeVersion(version) {
   return false;
 }
 
+// If we don't call wasi.start() we get an error, that we can safely (?) ignore in this case.
 export async function metaWriter(metadata, file) {
+  try {
+    await _metaWriter(metadata, file);
+  } catch (err) {
+    if (err['code'] !== 'ERR_WASI_NOT_STARTED')
+      throw err;
+  }
+}
+
+async function _metaWriter(metadata, file) {
   var preopens = { '/sandbox': realpathSync(dirname(file)) };
 
   if (metadata['FrontCover'] !== undefined) {
@@ -48,15 +58,32 @@ export async function metaWriter(metadata, file) {
       join('/sandbox', basename(file))
     ],
     env,
-    preopens: preopens,
+    preopens,
   });
 
   // This lets us use older versions of node, but it's not the best thing to do.
-  var importObject = checkNodeVersion(process.version) ? wasi.getImportObject() : { wasi_snapshot_preview1: wasi.wasiImport };
+  var importObject = checkNodeVersion(process.version) 
+    ? wasi.getImportObject() 
+    : { wasi_snapshot_preview1: wasi.wasiImport };
 
   const wasm = await WebAssembly.compile(
-    await readFile(join(dirname(import.meta.url.split(':').slice(1).join(':')), 'meta-writer.wasm')),
+    await readFile(join(
+      dirname(import.meta.url.split(':').slice(1).join(':')),
+      'meta-writer.wasm'
+    )),
   );
   const instance = await WebAssembly.instantiate(wasm, importObject);
-  wasi.start(instance);
+
+  /**
+   * wasi.start() throws a segfault when returning or when it tries to access this[kExitCode].
+   * 
+   * Directly calling the _start module might not be the best thing, but in our case it should be okay.
+   * wasi.start() performs some checks to see if parameters, functions and objects 
+   * are what they say they are. In our case this should not be necessary. (Meaning that if that were the case,
+   * we would have some other problems at the root)
+   * 
+   * wasi.start() also makes what I think is the mapping between WASM memory and NodeJS memory,
+   * but we shouldn't need it.
+   */
+  instance.exports._start();
 }
