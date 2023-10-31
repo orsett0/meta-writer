@@ -20,6 +20,8 @@ authors = ["Alessio Orsini <alessiorsini.ao@proton.me>"]
 edition = "2018"
 description = "Tool to add metadata to media files using lofty-rs, compiled to WASM"
 license = "Apache-2.0"
+repository  = "https://github.com/orsett0/meta-writer"
+keywords = [ "metadata", "tag", "tags", "mp4", "m4a", "ilst", "music"]
 
 [dependencies]
 wasm-bindgen = "0.2.84"

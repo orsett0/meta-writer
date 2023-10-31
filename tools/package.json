@@ -1,0 +1,22 @@
+{
+  "name": "tools",
+  "version": "1.0.0",
+  "description": "Various building tools for meta-writer",
+  "scripts": {
+    "packager": "packager.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/orsett0/meta-writer.git"
+  },
+  "author": "Alessio Orsini <alessiorsini.ao@proton.me>",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/orsett0/meta-writer/issues"
+  },
+  "homepage": "https://github.com/orsett0/meta-writer#readme",
+  "dependencies": {
+    "toml": "^3.0.0"
+  },
+  "private": true
+}

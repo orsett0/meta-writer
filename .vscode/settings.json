@@ -2,5 +2,6 @@
     "rust-analyzer.linkedProjects": [
         "./playground/lofty-test/Cargo.toml",
         "./Cargo.toml"
-    ]
+    ],
+    "javascript.suggestionActions.enabled": false
 }
